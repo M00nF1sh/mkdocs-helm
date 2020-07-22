@@ -10,11 +10,11 @@ logger = logging.getLogger(__name__)
 class HelmRepositoryPlugin(mkdocs.plugins.BasePlugin):
     config_scheme = (
         ('chart', mkdocs.config.config_options.Type(
-            mkdocs.utils.string_types, required=True)),
+            str, required=True)),
         ('chart_dir', mkdocs.config.config_options.Type(
-            mkdocs.utils.string_types, default='charts')),
+            str, default='charts')),
         ('helm_repo_url', mkdocs.config.config_options.Type(
-            mkdocs.utils.string_types, default='')),  # If unspecified, repo-url will be detected as github pages.
+            str, default='')),  # If unspecified, repo-url will be detected as github pages.
     )
 
     def on_post_build(self, config):
@@ -40,11 +40,11 @@ class HelmRepositoryPlugin(mkdocs.plugins.BasePlugin):
         original_charts_exists = self.is_original_charts_exists(
             git_bin, remote_name, remote_branch, chart_dir)
         if original_charts_exists:
-            logger.warning(
-                'no charts detected in {}/{}'.format(remote_name, remote_branch))
             self.checkout_original_charts(
                 git_bin, remote_name, remote_branch, site_dir, chart_dir)
         else:
+            logger.warning(
+                'no charts detected in {}/{}'.format(remote_name, remote_branch))
             output_chart_dir = pathlib.Path(site_dir) / pathlib.Path(chart_dir)
             output_chart_dir.mkdir()
 
