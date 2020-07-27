@@ -52,6 +52,14 @@ class HelmRepositoryPlugin(mkdocs.plugins.BasePlugin):
         output_chart_dir = (pathlib.PurePath(site_dir) /
                             pathlib.PurePath(chart_dir)).as_posix()
         command = [helm_bin, 'package', '-d', output_chart_dir, chart]
+
+        # Pass the git ref in GitHub Actions
+        git_ref = os.getenv('GITHUB_REF')
+        if git_ref is not None and git_ref.startswith('refs/tags/') and os.getenv('HELM_USE_GIT_TAG') is not None:
+            version = git_ref[10:]
+            command += ['--version', version, '--app-version', version]
+            print("Overwriting helm chart version and app-version with git tag '" + version + "'")
+
         subprocess.check_output(command)
 
     def build_chart_index(self, helm_bin, site_dir, helm_repo_url):
