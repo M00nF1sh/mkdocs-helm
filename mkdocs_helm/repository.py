@@ -10,11 +10,11 @@ logger = logging.getLogger(__name__)
 class HelmRepositoryPlugin(mkdocs.plugins.BasePlugin):
     config_scheme = (
         ('chart', mkdocs.config.config_options.Type(
-            mkdocs.utils.string_types, required=True)),
+            str, required=True)),
         ('chart_dir', mkdocs.config.config_options.Type(
-            mkdocs.utils.string_types, default='charts')),
+            str, default='charts')),
         ('helm_repo_url', mkdocs.config.config_options.Type(
-            mkdocs.utils.string_types, default='')),  # If unspecified, repo-url will be detected as github pages.
+            str, default='')),  # If unspecified, repo-url will be detected as github pages.
     )
 
     def on_post_build(self, config):
@@ -40,11 +40,11 @@ class HelmRepositoryPlugin(mkdocs.plugins.BasePlugin):
         original_charts_exists = self.is_original_charts_exists(
             git_bin, remote_name, remote_branch, chart_dir)
         if original_charts_exists:
-            logger.warning(
-                'no charts detected in {}/{}'.format(remote_name, remote_branch))
             self.checkout_original_charts(
                 git_bin, remote_name, remote_branch, site_dir, chart_dir)
         else:
+            logger.warning(
+                'no charts detected in {}/{}'.format(remote_name, remote_branch))
             output_chart_dir = pathlib.Path(site_dir) / pathlib.Path(chart_dir)
             output_chart_dir.mkdir()
 
@@ -52,6 +52,14 @@ class HelmRepositoryPlugin(mkdocs.plugins.BasePlugin):
         output_chart_dir = (pathlib.PurePath(site_dir) /
                             pathlib.PurePath(chart_dir)).as_posix()
         command = [helm_bin, 'package', '-d', output_chart_dir, chart]
+
+        # Pass the git ref in GitHub Actions
+        git_ref = os.getenv('GITHUB_REF')
+        if git_ref is not None and git_ref.startswith('refs/tags/') and os.getenv('HELM_USE_GIT_TAG') is not None:
+            version = git_ref[10:]
+            command += ['--version', version, '--app-version', version]
+            print("Overwriting helm chart version and app-version with git tag '" + version + "'")
+
         subprocess.check_output(command)
 
     def build_chart_index(self, helm_bin, site_dir, helm_repo_url):
